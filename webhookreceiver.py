@@ -1,8 +1,20 @@
 import os
 import sys
 import subprocess
+import configparser
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
+
+def load_config_variables():
+  config = configparser.ConfigParser()
+  config.read('config.ini')
+
+  # Get the values of the variables
+  global PORT
+  PORT = int(config.get('Variables', 'PORT'))
+
+  global HOME_DIR
+  HOME_DIR = config.get('Variables', 'HOME_DIR')
 
 class RequestHandler(BaseHTTPRequestHandler):
   def do_POST(self):
@@ -13,7 +25,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     repo_name = query['repo_name'][0]
     branch_name = query['branch_name'][0]
 
-    repo_path = f"/home/{repo_name}/{branch_name}"
+    repo_path = f"{HOME_DIR}{repo_name}/{branch_name}"
     os.chdir(repo_path)
 
     # Check if the repository folder exists and is a git repository
@@ -35,7 +47,8 @@ class RequestHandler(BaseHTTPRequestHandler):
       self.wfile.write(f"Error occurred while pulling changes or executing post.sh script: {str(e)}".encode())
 
 if __name__ == '__main__':
-  server_address = ('', 8000)
+  load_config_variables()
+  server_address = ('', PORT)
   httpd = HTTPServer(server_address, RequestHandler)
   print(f"Serving on {server_address[0]}:{server_address[1]}")
   httpd.serve_forever()
